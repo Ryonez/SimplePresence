@@ -1,0 +1,20 @@
+{
+  "apptype" : "",
+  "textConfig": {
+    "details": "working on a bot",
+    "state": "using discord.js"
+  },
+  "imageConfig": {
+    "smallKey": "nodejs",
+    "largeKey": "brackets",
+    "smallText": "node.js",
+    "largeText": "programming",
+    "showButton": true
+  },
+  "timeConfig": {
+    "timeType": "none",
+    "whatTime": "0s"
+  },
+  "musicType":"none",
+  "clientID": "340755371629215744"
+}
