@@ -8,11 +8,6 @@ if (config.serviceConfig.whichService == 'spotify') {
     console.error(err);
   });
 
-
-  const {
-    app,
-    BrowserWindow
-  } = require('electron');
   const open = require("open");
   const os = require('os');
   const path = require('path');
@@ -30,7 +25,11 @@ if (config.serviceConfig.whichService == 'spotify') {
   }
 
   let mainWindow;
-
+  if (config.serviceConfig.useUserInterface == true) {
+  const {
+    app,
+    BrowserWindow
+  } = require('electron');
   function createWindow() {
     var width = 600 //320
     var height = 430 //500
@@ -71,6 +70,7 @@ if (config.serviceConfig.whichService == 'spotify') {
     if (mainWindow === null)
       createWindow();
   });
+}
 
   DiscordRPC.register(ClientId);
 
@@ -80,10 +80,9 @@ if (config.serviceConfig.whichService == 'spotify') {
 
   var oldID
   var oldState
-  var songName = undefined;
 
   async function setActivity() {
-    if (!rpc || !mainWindow)
+    if (!rpc || (config.serviceConfig.useUserInterface == true && !mainWindow))
       return;
 
     var activity = {
@@ -100,16 +99,24 @@ if (config.serviceConfig.whichService == 'spotify') {
 
     spotify.getStatus(function(err, res) {
       if (err) return console.error(err);
-      if (res.track && res.track.track_resource && res.track.track_resource.name) {
+      if (res.track.track_resource && res.track.track_resource.name) {
         //activity.startTimestamp = new Date(new Date() - (res.playing_position * 1000));
         //activity.startTimestamp = moment(openTimestamp).add(res.playing_position * 100, 's').toDate();
+        var tP = ''
+        if (config.serviceConfig.titlePrefix) {
+          tP = config.serviceConfig.titlePrefix + ' '//.charAt(0);
+        }
+        var aP = ''
+        if (config.serviceConfig.artistPrefix) {
+           aP = config.serviceConfig.artistPrefix + ' '//.charAt(0);
+        }
         if (res.track.track_resource.name) {
-          activity.details = res.track.track_resource.name
+          activity.details = tP + res.track.track_resource.name
         } else {
           activity.details = "No Song"
         }
         if (res.track.artist_resource.name) {
-          activity.state = res.track.artist_resource.name
+          activity.state = aP + res.track.artist_resource.name
         } else {
           activity.state = "No Artist"
         }
@@ -118,32 +125,33 @@ if (config.serviceConfig.whichService == 'spotify') {
           if (res.track.length) {
             activity.endTimestamp = moment(time).add(res.track.length - res.playing_position, 's').toDate()
           }
+        } else if ((oldID !== res.track.track_resource.uri || !oldID) && res.track.length) {
+          activity.startTimestamp = moment(time).subtract('0', 's').toDate()
+          activity.endTimestamp = moment(time).add(res.track.length - 0, 's').toDate()
         }
-
         if (res.playing == true) {
           activity.smallImageKey = undefined
           activity.smallImageText = undefined
         } else {
           activity.smallImageKey = 'icon-pause'
           activity.smallImageText = 'Paused'
-          activity.startTimestamp = undefined
-          activity.endTimestamp = undefined
-          //activity.endTimestamp = moment(time).add('0', 's').toDate();
-          //activity.startTimestamp = moment(time).add('-' + res.playing_position, 's').toDate();
+          //activity.startTimestamp = undefined
+          //activity.endTimestamp = undefined
+          activity.endTimestamp = moment(time).add('0', 's').toDate();
+          activity.startTimestamp = moment(time).add('-' + res.playing_position, 's').toDate();
         }
         if (!oldID) {
-          oldID = res.track
+          oldID = res.track.track_resource.uri
           oldState = res.playing
           console.log(`[${new Date().toLocaleTimeString()}]: Initialised Successfully.`);
           rpc.setActivity(activity);
         }
-        if (oldID !== res.track || oldState !== res.playing) {
-          oldID = res.track
+        if (oldID !== res.track.track_resource.uri || oldState !== res.playing) {
+          oldID = res.track.track_resource.uri
           oldState = res.playing
           rpc.setActivity(activity);
-          console.log(`[${new Date().toLocaleTimeString()}]: ${res.track.track_resource.name} - Updating Rich Presence.`);
+          console.log(`[${new Date().toLocaleTimeString()}]: Status Change Detected, Updating Rich Presence.`);
         }
-
       }
     })
   }
@@ -164,6 +172,6 @@ if (config.serviceConfig.whichService == 'spotify') {
 
   rpc.login(ClientId).catch(console.error);
 } else {
-  console.log("Please set 'musicType' to 'whichService' in 'config.json' to use SimplePresence + Spotify.");
+  console.log("Please set 'whichService' to 'spotify' in 'config.json' to use SimplePresence + Spotify.");
   process.exit(0);
 }

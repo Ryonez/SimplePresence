@@ -16,10 +16,6 @@ if (config.serviceConfig.whichService == 'google') {
     console.error(err);
   });
 
-  const {
-    app,
-    BrowserWindow
-  } = require('electron');
   const open = require("open");
   const path = require('path');
   const url = require('url');
@@ -35,7 +31,11 @@ if (config.serviceConfig.whichService == 'google') {
   }
 
   let mainWindow;
-
+  if (config.serviceConfig.useUserInterface == true) {
+  const {
+    app,
+    BrowserWindow
+  } = require('electron');
   function createWindow() {
     var width = 600 //320
     var height = 430 //500
@@ -77,6 +77,7 @@ if (config.serviceConfig.whichService == 'google') {
     if (mainWindow === null)
       createWindow();
   });
+}
 
   DiscordRPC.register(ClientId);
 
@@ -89,7 +90,7 @@ if (config.serviceConfig.whichService == 'google') {
   var oldState = false
 
   async function setActivity() {
-    if (!rpc || !mainWindow)
+    if (!rpc || (config.serviceConfig.useUserInterface == true && !mainWindow))
       return;
 
     var activity = {
@@ -113,15 +114,25 @@ if (config.serviceConfig.whichService == 'google') {
       if (musicContent.time.total) {
         activity.endTimestamp = moment(time).add(musicContent.time.total - musicContent.time.current, 'ms').toDate()
       }
+    } else if ((oldID !== musicContent.song.albumArt || !oldID) && musicContent.time.total) {
+      activity.startTimestamp = moment(time).subtract('0', 's').toDate()
+      activity.endTimestamp = moment(time).add(musicContent.time.total - 0, 'ms').toDate()
     }
-
+    var tP = ''
+    if (config.serviceConfig.titlePrefix) {
+      tP = config.serviceConfig.titlePrefix + ' '//.charAt(0);
+    }
+    var aP = ''
+    if (config.serviceConfig.artistPrefix) {
+       aP = config.serviceConfig.artistPrefix + ' '//.charAt(0);
+    }
     if (musicContent.song.title !== null) {
-      activity.details = musicContent.song.title
+      activity.details = tP + musicContent.song.title
     } else {
       activity.details = "No Song"
     }
     if (musicContent.song.artist !== null) {
-      activity.state = musicContent.song.artist
+      activity.state = aP + musicContent.song.artist
     } else {
       activity.state = "No Artist"
     }
@@ -139,10 +150,13 @@ if (config.serviceConfig.whichService == 'google') {
   } else {
     activity.smallImageKey = 'icon-pause'
     activity.smallImageText = 'Paused'
-    activity.startTimestamp = undefined
-    activity.endTimestamp = undefined
-    //activity.endTimestamp = moment(time).add('0', 's').toDate();
-    //activity.startTimestamp = moment(time).add('-' + musicContent.time.current, 'ms').toDate();
+    if (musicContent.time.current && musicContent.time.total) {
+      activity.endTimestamp = moment(time).add('0', 'ms').toDate();
+      activity.startTimestamp = moment(time).add('-' + musicContent.time.current, 'ms').toDate();
+    } else {
+      activity.startTimestamp = undefined
+      activity.endTimestamp = undefined
+    }
   }
 
 
