@@ -1,5 +1,5 @@
 {
-  "apptype" : "",
+  "apptype" : "generic",
   "textConfig": {
     "details": "working on a bot",
     "state": "using discord.js"
